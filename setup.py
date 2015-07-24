@@ -8,8 +8,8 @@ else:
     cx = dict(
         options={
             "build_exe" : {
-            'build_exe' : 'cxbuild/',
-            'compressed' : True
+                'build_exe' : 'cxbuild/',
+                'compressed' : True
             }
         },
         executables=[Executable('HBRDumper/__main__.py')]

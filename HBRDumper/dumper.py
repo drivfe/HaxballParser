@@ -62,8 +62,6 @@ class Dumper:
         if self.result['In progress']:
             for _ in range(self.hbr.parse_uint()):
                 self.dump_disc()
-        else:
-            print('discs', False)
 
     def dump_player(self):
         player = OrderedDict()

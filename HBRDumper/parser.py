@@ -3,7 +3,6 @@ from tempfile import TemporaryFile
 
 class Parser:
     def __init__(self, filename):
-        self.filename = filename
         self.fh = open(filename, "rb")
     
     def nxt(self, amount):
