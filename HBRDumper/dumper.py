@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import time
 from .parser import Parser
 
 class Dumper:
@@ -17,21 +18,21 @@ class Dumper:
         header_order = [
             ('Version', self.hbr.parse_uint),
             ('i_HBRP', self.hbr.parse_uint),
-            ('Frame count', self.hbr.parse_uint),
+            ('Replay length', self.hbr.parse_uint),
             ('i_deflate', self.hbr.deflate),
-            ('First Frame', self.hbr.parse_uint),
+            ('i_First Frame', self.hbr.parse_uint),
             ('Room Name', self.hbr.parse_str),
             ('Locked', self.hbr.parse_bool),
             ('Score Limit', self.hbr.parse_byte),
             ('Time Limit', self.hbr.parse_byte),
-            ('Rules Timer', self.hbr.parse_uint),
-            ('Rules', self.hbr.parse_byte),
-            ('Puck side', self.hbr.parse_side),
-            ('Puck pos', self.hbr.parse_pos),
+            ('i_Rules Timer', self.hbr.parse_uint),
+            ('i_Rules', self.hbr.parse_byte),
+            ('i_Puck side', self.hbr.parse_side),
+            ('i_Puck pos', self.hbr.parse_pos),
             ('Red score', self.hbr.parse_uint),
             ('Blue score', self.hbr.parse_uint),
-            ('Time', self.hbr.parse_double),
-            ('Pause timer', self.hbr.parse_bool),
+            ('Current time', self.hbr.parse_double),
+            ('Paused', self.hbr.parse_bool),
             ('Stadium', self.hbr.parse_stadium),
             ('In progress', self.hbr.parse_bool)
         ]
@@ -40,6 +41,9 @@ class Dumper:
             parsed = func()
             if 'i_' not in name:
                 self.result[name] = parsed
+                
+        self.result['Replay length'] = time.strftime("%H:%M:%S", time.gmtime(self.result['Replay length'] / 60))
+        self.result['Current time'] = time.strftime("%H:%M:%S", time.gmtime(self.result['Current time']))
 
     def dump_disc(self):
         disc_order = [

@@ -63,11 +63,21 @@ class Parser:
         return pos
 
     def parse_stadium(self):
+        maps = [
+            'Classic',
+            'Easy',
+            'Small',
+            'Big',
+            'Rounded',
+            'Hockey',
+            'Big Hockey',
+            'Big Easy',
+            'Big Rounded',
+            'Huge'
+        ]
+        
         b = self.parse_byte()
-        if b != 255:
-            return "Normal", b
-        else:
-            return "Custom", b
+        return maps[b] if b != 255 else 'Custom'
 
     def deflate(self):
         decompressed = zlib.decompress(self.fh.read())
