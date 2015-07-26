@@ -1,4 +1,5 @@
 import sys
+from pprint import pprint
 from .dumper import dump_hbr
 
 def main(args=None):
@@ -8,8 +9,7 @@ def main(args=None):
         file = ' '.join(sys.argv[1:])
 
     dumped = dump_hbr(file)
-    for k, v in dumped.items():
-        print(k+':', v)
+    pprint(dumped)
 
 if __name__ == '__main__':
     main()

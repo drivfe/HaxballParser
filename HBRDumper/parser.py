@@ -1,9 +1,19 @@
-import socket, struct, zlib
-from tempfile import TemporaryFile
+import socket
+import struct
+import zlib
+import io
+import sys
+from collections import namedtuple
+
+Action = namedtuple('Action', 'sender action parsed')
+Player = namedtuple('Player', 'ID name country admin')
 
 class Parser:
-    def __init__(self, filename):
-        self.fh = open(filename, "rb")
+    def __init__(self, btsio):
+        self.fh = io.BytesIO(btsio)
+    
+    def pos(self):
+        return self.fh.tell()
     
     def nxt(self, amount):
         cb = self.fh.read(amount)
@@ -25,7 +35,10 @@ class Parser:
         result = b""
         
         for c in range(strlen):
-            result += bytes([self.parse_byte()])
+            try:
+                result += bytes([self.parse_byte()])
+            except:
+                pass
 
         return result.decode('ascii', errors='ignore')
 
@@ -35,18 +48,20 @@ class Parser:
         return unpacked
 
     def parse_bool(self):
-        n = ord(self.nxt(1))
+        x = self.nxt(1)
+        # print('b', len(x), self.pos())
+        n = ord(x)
         if n > 2 or n < 0:
             print('BOOL ERROR', n)
         return n == 1 # 0 = false, 1 = true
 
     def parse_side(self):
         side = self.parse_byte()
-        if side == 0:
+        if side == 1:
             return 'Red'
-        elif side == 1:
-            return 'Blue'
         elif side == 2:
+            return 'Blue'
+        elif side == 0:
             return 'Spectator'
         else:
             return 'parse_side() error'
@@ -77,13 +92,15 @@ class Parser:
         ]
         
         b = self.parse_byte()
-        return maps[b] if b != 255 else 'Custom'
+        if b == 255:
+            sys.exit('Custom maps not supported')
+        return maps[b]
 
     def deflate(self):
         decompressed = zlib.decompress(self.fh.read())
         self.fh.close()
 
-        self.fh = TemporaryFile()
+        self.fh = io.BytesIO()
         self.fh.write(decompressed)
         self.fh.seek(0)
         

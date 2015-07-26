@@ -1,17 +1,21 @@
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 import time
-from .parser import Parser
+import io
+from .parser import Parser, Player
+from .actions import Actions
 
 class Dumper:
     def __init__(self, file):
         self.hbr = Parser(file)
+        self.players = {}
         self.result = OrderedDict()
         
     def dump(self):
         self.dump_header()
         self.dump_discs()
         self.dump_players()
-
+        self.dump_actions()
+        
         return self.result
 
     def dump_header(self):
@@ -85,17 +89,46 @@ class Dumper:
         ]
         for name, func in player_order:
             player[name] = func()
-            
-        return player['Name']
+        p = Player(
+                ID=player['ID'],
+                name=player['Name'],
+                admin=player['Admin'],
+                country=player['Country']
+            )
+        return {player['ID']: p}
             
     def dump_players(self):
-        players = self.hbr.parse_uint()
-        player_list = []
-        for player in range(players):
-            player_list.append(self.dump_player())
+        amt = self.hbr.parse_uint()
+        for player in range(amt):
+            self.players.update(self.dump_player())
         
-        self.result['Players'] = player_list
-   
+        self.result['Players'] = self.players
+    
+    def dump_actions(self):
+        rem_data = self.hbr.fh.read()
+        rem_data_size = len(rem_data)
+        self.hbr = Actions(rem_data, self.players)
+
+        cframe, replaytime = 0, 0
+        action_list = []
+        
+        self.hbr.nxt(14) # I don't know what the first 14 bytes are.
+        
+        while self.hbr.pos() < rem_data_size:
+            if self.hbr.parse_bool(): # idk
+                cframe += self.hbr.parse_uint()
+                replaytime = cframe / 60
+            
+            action = self.hbr.dump()
+            if not action.action in ['discMove','broadcastPing']:
+                # print(action.sender, '->', action.parsed)
+                action_list.append(action)
+                
+        self.result['Actions'] = action_list
+        
 def dump_hbr(file):
-    hbr = Dumper(file)
+    with open(file, 'rb') as fh:
+        data = fh.read()
+        
+    hbr = Dumper(data)
     return hbr.dump()
