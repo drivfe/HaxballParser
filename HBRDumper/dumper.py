@@ -1,16 +1,21 @@
-from collections import OrderedDict, namedtuple
-import time
-import io
-from .parser import Parser, Player
-from .actions import Actions
+import sys
+from collections import OrderedDict
+from .parser import Parser
+from .actionparser import ActionParser
+from .utils import *
 
 class Dumper:
     def __init__(self, file):
         self.hbr = Parser(file)
-        self.players = {}
         self.result = OrderedDict()
         
     def dump(self):
+        version = self.hbr.parse_uint()
+        if version < 12:
+            return {'Version': version, 'Unsupported' : True}
+        
+        self.result['Version'] = version
+        
         self.dump_header()
         self.dump_discs()
         self.dump_players()
@@ -19,8 +24,9 @@ class Dumper:
         return self.result
 
     def dump_header(self):
+        
+            
         header_order = [
-            ('Version', self.hbr.parse_uint),
             ('i_HBRP', self.hbr.parse_uint),
             ('Replay length', self.hbr.parse_uint),
             ('i_deflate', self.hbr.deflate),
@@ -35,7 +41,7 @@ class Dumper:
             ('i_Puck pos', self.hbr.parse_pos),
             ('Red score', self.hbr.parse_uint),
             ('Blue score', self.hbr.parse_uint),
-            ('Current time', self.hbr.parse_double),
+            ('Current replay time', self.hbr.parse_double),
             ('Paused', self.hbr.parse_bool),
             ('Stadium', self.hbr.parse_stadium),
             ('In progress', self.hbr.parse_bool)
@@ -45,9 +51,12 @@ class Dumper:
             parsed = func()
             if 'i_' not in name:
                 self.result[name] = parsed
-                
-        self.result['Replay length'] = time.strftime("%H:%M:%S", time.gmtime(self.result['Replay length'] / 60))
-        self.result['Current time'] = time.strftime("%H:%M:%S", time.gmtime(self.result['Current time']))
+        
+        self.result['Replay length'] = format_time(self.result['Replay length'] / 60)
+        
+        if self.result['Current replay time'] < 0:
+            self.result['Current replay time'] = 0
+        self.result['Current replay time'] = format_time(self.result['Current replay time'])
 
     def dump_disc(self):
         disc_order = [
@@ -89,42 +98,28 @@ class Dumper:
         ]
         for name, func in player_order:
             player[name] = func()
+            
         p = Player(
                 ID=player['ID'],
                 name=player['Name'],
                 admin=player['Admin'],
                 country=player['Country']
             )
-        return {player['ID']: p}
+        return p
             
     def dump_players(self):
         amt = self.hbr.parse_uint()
+        pls = []
         for player in range(amt):
-            self.players.update(self.dump_player())
+            pls.append(self.dump_player())
         
-        self.result['Players'] = self.players
+        self.result['Players'] = pls
     
     def dump_actions(self):
         rem_data = self.hbr.fh.read()
-        rem_data_size = len(rem_data)
-        self.hbr = Actions(rem_data, self.players)
-
-        cframe, replaytime = 0, 0
-        action_list = []
-        
-        self.hbr.nxt(14) # I don't know what the first 14 bytes are.
-        
-        while self.hbr.pos() < rem_data_size:
-            if self.hbr.parse_bool(): # idk
-                cframe += self.hbr.parse_uint()
-                replaytime = cframe / 60
-            
-            action = self.hbr.dump()
-            if not action.action in ['discMove','broadcastPing']:
-                # print(action.sender, '->', action.parsed)
-                action_list.append(action)
-                
-        self.result['Actions'] = action_list
+        self.hbr = ActionParser(rem_data, self.result['Players'])
+      
+        self.result['Actions'] = self.hbr.dump()
         
 def dump_hbr(file):
     with open(file, 'rb') as fh:

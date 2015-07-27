@@ -1,10 +1,12 @@
-from collections import namedtuple
-from .parser import Parser, Action, Player
+from .parser import Parser
+from .utils import *
 
-class Actions(Parser):
+class ActionParser(Parser):
     def __init__(self, btsio, players):
         super().__init__(btsio)
         self.players = players
+        self.rem_data_size = len(btsio)
+        self.replaytime = 0
         self.actions = [
             'newPlayer',
 			'removePlayer',
@@ -27,28 +29,46 @@ class Actions(Parser):
         
     def del_player(self, id):
         try:
-            del self.players[id]
+            p = find_by_attr_val(self.players, 'ID', id)
+            if p:
+                del self.players[self.players.index(p)]
         except KeyError:
             pass
         
     def player(self, id):
-        try:
-            sender = self.players[id].name
-        except KeyError:
-            sender = 'Unknown'
-            print('UNKNOWN', id)
-        except AttributeError:
-            print('atttrerror', id) # fix: use namedtuple in newPlayer
+        sender = find_by_attr_val(self.players, 'ID', id)
+        if sender:
+            sender = sender.name
+        
         return sender
         
     def dump(self):
-        sender = self.player(self.parse_uint())
+        cframe = 0
+        action_list = []
+        action_ignore = ['discMove', 'broadcastPing']
+        
+        self.nxt(14) # I don't know what the first 14 bytes are.
+
+        while self.pos() < self.rem_data_size:
+            if self.parse_bool(): # True if this is a different frame.
+                cframe += self.parse_uint()
+                self.replaytime = cframe / 60
+            
+            action = self.dump_next()
+            if not action.action in action_ignore:
+                action_list.append(action)
+                
+        return action_list
+        
+    def dump_next(self):
+        current_time = format_time(self.replaytime)
+        senderID = self.parse_uint()
         action = self.actions[self.parse_byte()]
         parsed = getattr(self, action)()
-        return Action(sender=sender, action=action, parsed=parsed)
-
+        return Action(time=current_time, senderID=senderID, action=action, parsed=parsed)
+        
     def announceHandicap(self):
-        return 'Handicapped '+self.parse_ushort()
+        return 'Handicap set to '+ str(self.parse_ushort())
         
     def broadcastPing(self):
         num = self.parse_byte()
@@ -69,9 +89,9 @@ class Actions(Parser):
         admin = self.parse_bool()
         
         if not admin:
-            return 'Removed admin from '+player
+            return 'Removed admin from '+ player
         
-        return 'Made '+player+' an admin'
+        return 'Made '+ player +' an admin'
         
     def changePlayerAvatar(self):
         return '/avatar '+ self.parse_str()
@@ -91,7 +111,7 @@ class Actions(Parser):
         player = self.player(self.parse_uint())
         team = self.parse_side()
         
-        return 'Moved '+ player +' to '+team
+        return 'Moved '+ player +' to '+ team
         
     def discMove(self):
         move = self.parse_byte()
@@ -124,7 +144,7 @@ class Actions(Parser):
                 admin=admin,
                 country=country
             )
-        self.players[ID] = p
+        self.players.append(p)
         
         return name+' joined'
         

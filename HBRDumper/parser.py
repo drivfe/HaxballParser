@@ -3,10 +3,6 @@ import struct
 import zlib
 import io
 import sys
-from collections import namedtuple
-
-Action = namedtuple('Action', 'sender action parsed')
-Player = namedtuple('Player', 'ID name country admin')
 
 class Parser:
     def __init__(self, btsio):
