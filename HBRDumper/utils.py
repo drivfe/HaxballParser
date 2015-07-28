@@ -11,18 +11,20 @@ class Action:
         return 'Action(time={s.time}, senderID={s.senderID}, action={s.action}, parsed={s.parsed})'.format(s=self)
     
 class Player:
-    def __init__(self, ID, name, country, admin):
+    def __init__(self, ID, name, country, admin, team, avatar):
         self.ID = ID
         self.name = name
         self.country = country
         self.admin = admin
+        self.team = team
+        self.avatar = avatar
         self.pings = []
         
     def average_ping(self):
         return "{:.02f}".format(sum(self.pings) / len(self.pings))
         
     def __repr__(self):
-        return 'Player(ID={s.ID}, name={s.name}, country={s.country}, admin={s.admin})'.format(s=self)
+        return 'Player(ID={s.ID}, name={s.name}, country={s.country}, team={s.team}, admin={s.admin})'.format(s=self)
         
 def find_by_attr_val(lst, attr, val, multiple=False):
     res = []
@@ -38,4 +40,14 @@ def find_by_attr_val(lst, attr, val, multiple=False):
 def format_time(ms):
     return time.strftime("%H:%M:%S", time.gmtime(ms))
         
-__ALL__ = ['Action', 'Player', 'find_by_attr', 'format_time']
+class ParserError(Exception):
+    def __init__(self, reason):
+        self.reason = reason
+        
+    def __repl__(self):
+        return self.reason
+        
+    def __str__(self):
+        return repl(self)
+        
+__ALL__ = ['Action', 'Player', 'ParserError', 'find_by_attr_val', 'format_time']

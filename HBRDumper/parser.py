@@ -2,7 +2,7 @@ import socket
 import struct
 import zlib
 import io
-import sys
+from .utils import ParserError
 
 class Parser:
     def __init__(self, btsio):
@@ -89,7 +89,7 @@ class Parser:
         
         b = self.parse_byte()
         if b == 255:
-            sys.exit('Custom maps not supported')
+            raise ParserError('Custom stadiums are not supported.')
         return maps[b]
 
     def deflate(self):

@@ -35,10 +35,10 @@ class ActionParser(Parser):
         except KeyError:
             pass
         
-    def player(self, id):
+    def player(self, id, attr='name', obj=False):
         sender = find_by_attr_val(self.players, 'ID', id)
-        if sender:
-            sender = sender.name
+        if sender and not obj:
+            sender = getattr(sender, attr)
         
         return sender
         
@@ -55,7 +55,7 @@ class ActionParser(Parser):
                 self.replaytime = cframe / 60
             
             action = self.dump_next()
-            if not action.action in action_ignore:
+            if action.parsed != None and action.action not in action_ignore:
                 action_list.append(action)
                 
         return action_list
@@ -65,6 +65,7 @@ class ActionParser(Parser):
         senderID = self.parse_uint()
         action = self.actions[self.parse_byte()]
         parsed = getattr(self, action)()
+        
         return Action(time=current_time, senderID=senderID, action=action, parsed=parsed)
         
     def announceHandicap(self):
@@ -85,13 +86,14 @@ class ActionParser(Parser):
         return 'Settings changed'
         
     def changePlayerAdminRights(self):
-        player = self.player(self.parse_uint())
+        player = self.player(self.parse_uint(), obj=True)
         admin = self.parse_bool()
+        player.admin = admin
         
         if not admin:
-            return 'Removed admin from '+ player
+            return 'Removed admin from '+ player.name
         
-        return 'Made '+ player +' an admin'
+        return 'Made '+ player.name +' an admin'
         
     def changePlayerAvatar(self):
         return '/avatar '+ self.parse_str()
@@ -108,17 +110,18 @@ class ActionParser(Parser):
         return '{} teams'.format('Unlocked' if not self.parse_bool() else 'Locked')
         
     def changeTeam(self):
-        player = self.player(self.parse_uint())
+        player = self.player(self.parse_uint(), obj=True)
         team = self.parse_side()
         
-        return 'Moved '+ player +' to '+ team
+        if team == player.team: # player was not moved, glitch.
+            return None
+        
+        player.team = team
+        
+        return 'Moved '+ player.name +' to '+ team
         
     def discMove(self):
         move = self.parse_byte()
-        
-        if move & 16 == 0:
-            return 'wot'
-         
         return move
         
     def stopMatch(self):
@@ -142,7 +145,9 @@ class ActionParser(Parser):
                 ID=ID,
                 name=name,
                 admin=admin,
-                country=country
+                country=country,
+                team='Spectator',
+                avatar=''
             )
         self.players.append(p)
         
@@ -158,8 +163,11 @@ class ActionParser(Parser):
             
         ban = self.parse_bool()
         
+        if not player:
+            return None
+            
         self.del_player(ID)
-        
+            
         if kicked:
             return '{} was {}: {}'.format(player, 'banned' if ban else 'kicked', reason)
         

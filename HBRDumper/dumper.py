@@ -12,7 +12,9 @@ class Dumper:
     def dump(self):
         version = self.hbr.parse_uint()
         if version < 12:
-            return {'Version': version, 'Unsupported' : True}
+            raise ParserError(
+                'Replay version {} is not supported.'.format(version)
+            )
         
         self.result['Version'] = version
         
@@ -103,7 +105,9 @@ class Dumper:
                 ID=player['ID'],
                 name=player['Name'],
                 admin=player['Admin'],
-                country=player['Country']
+                country=player['Country'],
+                team=player['Team'],
+                avatar=player['Avatar']
             )
         return p
             
@@ -121,7 +125,7 @@ class Dumper:
       
         self.result['Actions'] = self.hbr.dump()
         
-def dump_hbr(file):
+def dump(file):
     with open(file, 'rb') as fh:
         data = fh.read()
         
