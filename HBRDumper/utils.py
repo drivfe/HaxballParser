@@ -37,8 +37,8 @@ def find_by_attr_val(lst, attr, val, multiple=False):
             
     return res if len(res)>0 else None
 
-def format_time(ms):
-    return time.strftime("%H:%M:%S", time.gmtime(ms))
+def format_time(s):
+    return time.strftime("%H:%M:%S", time.gmtime(s))
         
 class ParserError(Exception):
     def __init__(self, reason):

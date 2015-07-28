@@ -44,9 +44,7 @@ class Parser:
         return unpacked
 
     def parse_bool(self):
-        x = self.nxt(1)
-        # print('b', len(x), self.pos())
-        n = ord(x)
+        n = ord(self.nxt(1))
         if n > 2 or n < 0:
             print('BOOL ERROR', n)
         return n == 1 # 0 = false, 1 = true
@@ -63,10 +61,8 @@ class Parser:
             return 'parse_side() error'
 
     def parse_double(self):
-        bts = self.nxt(8)
+        bts = self.nxt(8)[::-1]
         unpacked = struct.unpack("<d", bts)[0]
-        # rev = int(str(unpacked)[::-1])
-        # result = rev/10000000
         return unpacked
             
     def parse_pos(self):

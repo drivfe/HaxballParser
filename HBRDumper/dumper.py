@@ -1,4 +1,3 @@
-import sys
 from collections import OrderedDict
 from .parser import Parser
 from .actionparser import ActionParser
@@ -18,6 +17,9 @@ class Dumper:
         
         self.result['Version'] = version
         
+        if self.hbr.nxt(4) != b'HBRP':
+            raise ParserError('Not a valid .hbr file.')
+        
         self.dump_header()
         self.dump_discs()
         self.dump_players()
@@ -26,10 +28,7 @@ class Dumper:
         return self.result
 
     def dump_header(self):
-        
-            
         header_order = [
-            ('i_HBRP', self.hbr.parse_uint),
             ('Replay length', self.hbr.parse_uint),
             ('i_deflate', self.hbr.deflate),
             ('i_First Frame', self.hbr.parse_uint),
@@ -43,7 +42,7 @@ class Dumper:
             ('i_Puck pos', self.hbr.parse_pos),
             ('Red score', self.hbr.parse_uint),
             ('Blue score', self.hbr.parse_uint),
-            ('Current replay time', self.hbr.parse_double),
+            ('Current match time', self.hbr.parse_double),
             ('Paused', self.hbr.parse_bool),
             ('Stadium', self.hbr.parse_stadium),
             ('In progress', self.hbr.parse_bool)
@@ -55,10 +54,10 @@ class Dumper:
                 self.result[name] = parsed
         
         self.result['Replay length'] = format_time(self.result['Replay length'] / 60)
-        
-        if self.result['Current replay time'] < 0:
-            self.result['Current replay time'] = 0
-        self.result['Current replay time'] = format_time(self.result['Current replay time'])
+
+        if str(self.result['Current match time']).lower() == 'nan':
+            self.result['Current match time'] = 0
+        self.result['Current match time'] = format_time(self.result['Current match time'])
 
     def dump_disc(self):
         disc_order = [
@@ -83,7 +82,7 @@ class Dumper:
                 self.dump_disc()
 
     def dump_player(self):
-        player = OrderedDict()
+        player = {}
         player_order = [
             ('ID', self.hbr.parse_uint),
             ('Name', self.hbr.parse_str),

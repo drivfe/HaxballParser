@@ -113,6 +113,9 @@ class ActionParser(Parser):
         player = self.player(self.parse_uint(), obj=True)
         team = self.parse_side()
         
+        if player == None:
+            return None
+            
         if team == player.team: # player was not moved, glitch.
             return None
         
