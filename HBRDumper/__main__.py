@@ -2,9 +2,7 @@ import sys
 import os
 import glob
 from timeit import default_timer as t
-from pprint import pformat
 from .dumper import dump
-from .utils import *
 
 def main(args=None):
     args = ' '.join(sys.argv[1:])
@@ -29,10 +27,10 @@ def main(args=None):
     if not os.path.exists(dirn):
         os.makedirs(dirn)
             
-    print('.hbrdump file(s) will be saved in the directory "{}"'.format(dirn))
+    print('Dumped file(s) will be saved in the directory "{}"'.format(dirn))
     for file in files:
-        basen = os.path.basename(file)
-        hbrdump = os.path.join(dirn, basen+'dump')
+        basen, ext = os.path.basename(file).split('.')
+        hbrdump = os.path.join(dirn, basen+'.txt')
         try:
             start = t()
             dumped = dump(file)
@@ -41,7 +39,7 @@ def main(args=None):
         else:
             print('"{}" -> SUCCESS: dumped to {} ({}ms)'.format(basen, hbrdump, int((t()-start)*1000)))
             with open(hbrdump, 'w+') as f:
-                f.write(pformat(dumped))
+                f.write(dumped.prettify())
 
 if __name__ == '__main__':
     main()

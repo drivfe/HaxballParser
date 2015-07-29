@@ -1,7 +1,87 @@
+import io
+from pprint import pformat
 from collections import OrderedDict
 from .parser import Parser
 from .actionparser import ActionParser
 from .utils import *
+
+class DumpResponse:
+    def __init__(self, result):
+        self.result = result
+
+    def __repl__(self):
+        return self.result
+
+    def prettify(self, includeraw=True):
+        r = self.result
+        sb = io.StringIO()
+        line = lambda s='', b=sb: b.write(s+'\n')
+
+        # Replay info
+        line('REPLAY INFO')
+        line('  Version {}'.format(r['Version']))
+        line('  Length: {}'.format(r['Replay length']))
+        line()
+
+        # Room info
+        line('ROOM INFO')
+        line('  Room name: {}'.format(r['Room Name']))
+        line('  Scores: Red {} - {} Blue'.format(r['Red score'], r['Blue score']))
+        line('  Time limit: {} - Score limit: {}'.format(r['Time Limit'], r['Score Limit']))
+        line('  Current match time: {}'.format(r['Current match time']))
+        line('  Match in progress: {}'.format(r['In progress']))
+        line()
+
+        # Players
+        line('PLAYERS LIST')
+        redp = find_by_attr_val(r['Players'], {'team': 'Red', 'orig': True}, True)
+        bluep = find_by_attr_val(r['Players'], {'team': 'Blue', 'orig': True}, True)
+        specp = find_by_attr_val(r['Players'], {'team': 'Spectator', 'orig': True}, True)
+        
+        if len(redp) > 0:
+            line('  Red:')
+            [line('    '+p.name) for p in redp]
+
+        if len(bluep) > 0:
+            line('  Blue:')
+            [line('    '+p.name) for p in bluep]
+        
+        if len(specp) > 0:
+            line('  Spectators:')
+            [line('    '+p.name) for p in specp]
+
+        line('  Throughout the replay:')
+        joined = find_by_attr_val(r['Players'], {'orig': False}, True)
+        left = find_by_attr_val(r['Players'], {'removed': True}, True)
+        if len(joined) > 0:
+            line('    Joined:')
+            [line('      '+p.name) for p in joined]
+        if len(left) > 0:
+            line('    Left/Kicked/Banned:')
+            [line('      '+p.name) for p in left]
+        line()
+
+        # Actions
+        line('ACTION LIST')
+        acts = r['Actions']
+        for a in acts:
+            frmt = '({}) {} -> {}'.format(
+                    a.time,
+                    find_by_attr_val(r['Players'], {'ID': a.senderID}).name,
+                    a.parsed
+                )
+            line(frmt)
+        line()
+
+        # Raw dictionary
+        if includeraw:
+            line('RAW DICTIONARY')
+            sb.write(pformat(r))
+
+        pretty = sb.getvalue()
+        sb.close()
+
+        return pretty
 
 class Dumper:
     def __init__(self, file):
@@ -25,7 +105,7 @@ class Dumper:
         self.dump_players()
         self.dump_actions()
         
-        return self.result
+        return DumpResponse(self.result)
 
     def dump_header(self):
         header_order = [
@@ -128,5 +208,5 @@ def dump(file):
     with open(file, 'rb') as fh:
         data = fh.read()
         
-    hbr = Dumper(data)
-    return hbr.dump()
+    resp = Dumper(data)
+    return resp.dump()

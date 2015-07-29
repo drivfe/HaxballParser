@@ -7,6 +7,7 @@ class ActionParser(Parser):
         self.players = players
         self.rem_data_size = len(btsio)
         self.replaytime = 0
+        self.cur_senderID = 0
         self.actions = [
             'newPlayer',
 			'removePlayer',
@@ -29,17 +30,18 @@ class ActionParser(Parser):
         
     def del_player(self, id):
         try:
-            p = find_by_attr_val(self.players, 'ID', id)
+            p = find_by_attr_val(self.players, {'ID': id})
             if p:
-                del self.players[self.players.index(p)]
+                # del self.players[self.players.index(p)]
+                p.removed = True
         except KeyError:
             pass
         
     def player(self, id, attr='name', obj=False):
-        sender = find_by_attr_val(self.players, 'ID', id)
+        sender = find_by_attr_val(self.players, {'ID': id, 'removed' : False})
         if sender and not obj:
             sender = getattr(sender, attr)
-        
+
         return sender
         
     def dump(self):
@@ -62,11 +64,11 @@ class ActionParser(Parser):
         
     def dump_next(self):
         current_time = format_time(self.replaytime)
-        senderID = self.parse_uint()
+        self.cur_senderID = self.parse_uint()
         action = self.actions[self.parse_byte()]
         parsed = getattr(self, action)()
         
-        return Action(time=current_time, senderID=senderID, action=action, parsed=parsed)
+        return Action(time=current_time, senderID=self.cur_senderID, action=action, parsed=parsed)
         
     def announceHandicap(self):
         return 'Handicap set to '+ str(self.parse_ushort())
@@ -96,7 +98,10 @@ class ActionParser(Parser):
         return 'Made '+ player.name +' an admin'
         
     def changePlayerAvatar(self):
-        return '/avatar '+ self.parse_str()
+        ava = self.parse_str()
+        player = self.player(self.cur_senderID, obj=True)
+        player.avatar = ava
+        return 'Avatar changed to: '+ ava
         
     def pauseGame(self):
         return 'Game ' + 'paused' if self.parse_bool() else 'unpaused'
@@ -150,7 +155,8 @@ class ActionParser(Parser):
                 admin=admin,
                 country=country,
                 team='Spectator',
-                avatar=''
+                avatar='',
+                orig=False
             )
         self.players.append(p)
         

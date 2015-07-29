@@ -11,31 +11,33 @@ class Action:
         return 'Action(time={s.time}, senderID={s.senderID}, action={s.action}, parsed={s.parsed})'.format(s=self)
     
 class Player:
-    def __init__(self, ID, name, country, admin, team, avatar):
+    def __init__(self, ID, name, country, admin, team, avatar, orig=True):
         self.ID = ID
         self.name = name
         self.country = country
         self.admin = admin
         self.team = team
         self.avatar = avatar
+        self.orig = orig == True
+        self.removed = False
         self.pings = []
         
     def average_ping(self):
         return "{:.02f}".format(sum(self.pings) / len(self.pings))
         
     def __repr__(self):
-        return 'Player(ID={s.ID}, name={s.name}, country={s.country}, team={s.team}, admin={s.admin})'.format(s=self)
+        return 'Player(ID={s.ID}, name={s.name}, country={s.country}, team={s.team}, admin={s.admin}, avatar={s.avatar})'.format(s=self)
         
-def find_by_attr_val(lst, attr, val, multiple=False):
+def find_by_attr_val(lst, attrs, multiple=False):
     res = []
     for a in lst:
-        if getattr(a, attr) == val:
+        if all(getattr(a, attr) == attrs[attr] for attr in attrs.keys()):
             if multiple:
                 res.append(a)
             else:
                 return a
             
-    return res if len(res)>0 else None
+    return res
 
 def format_time(s):
     return time.strftime("%H:%M:%S", time.gmtime(s))
