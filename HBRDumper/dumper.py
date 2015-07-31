@@ -62,15 +62,19 @@ class DumpResponse:
         line()
 
         # Actions
+
+        pdict = {p.ID: p for p in r['Players']}
+
         line('ACTION LIST')
         acts = r['Actions']
         for a in acts:
-            frmt = '({}) {} -> {}'.format(
-                    a.time,
-                    find_by_attr_val(r['Players'], {'ID': a.senderID}).name,
-                    a.parsed
-                )
-            line(frmt)
+            if pdict.get(a.senderID, 0):
+                frmt = '({}) {} -> {}'.format(
+                        format_time(a.time),
+                        pdict[a.senderID].name,
+                        a.parsed
+                    )
+                line(frmt)
         line()
 
         # Raw dictionary

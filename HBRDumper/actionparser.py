@@ -5,6 +5,7 @@ class ActionParser(Parser):
     def __init__(self, btsio, players):
         super().__init__(btsio)
         self.players = players
+        self.player_bin = []
         self.rem_data_size = len(btsio)
         self.replaytime = 0
         self.cur_senderID = 0
@@ -27,23 +28,29 @@ class ActionParser(Parser):
 			'broadcastPing',
 			'announceHandicap'
         ]
-        
+
+    def move_player(self, p, team):
+        p.team = team
+
+        # Move player to the back of the list
+        idx = self.players.index(p)
+        self.players.pop(idx)
+        self.players.append(p)
+
     def del_player(self, id):
         try:
             p = find_by_attr_val(self.players, {'ID': id})
             if p:
-                # del self.players[self.players.index(p)]
                 p.removed = True
+                self.player_bin.append(p)
+                del self.players[self.players.index(p)]
         except KeyError:
             pass
         
-    def player(self, id, attr='name', obj=False):
-        sender = find_by_attr_val(self.players, {'ID': id, 'removed' : False})
-        if sender and not obj:
-            sender = getattr(sender, attr)
-
+    def player(self, id):
+        sender = find_by_attr_val(self.players, {'ID': id})
         return sender
-        
+
     def dump(self):
         cframe = 0
         action_list = []
@@ -51,24 +58,42 @@ class ActionParser(Parser):
         
         self.nxt(14) # I don't know what the first 14 bytes are.
 
-        while self.pos() < self.rem_data_size:
-            if self.parse_bool(): # True if this is a different frame.
-                cframe += self.parse_uint()
+        # Stuff to make parsing faster
+        dnext = self.dump_next
+        pos = self.pos
+        alappend = action_list.append
+        pb = self.parse_bool
+        pu = self.parse_uint
+
+        while pos() < self.rem_data_size:
+            if pb(): # True if this is a different frame.
+                cframe += pu()
                 self.replaytime = cframe / 60
             
-            action = self.dump_next()
-            if action.parsed != None and action.action not in action_ignore:
-                action_list.append(action)
-                
-        return action_list
+            action = dnext()
+
+            if action.parsed != None and action.action not in action_ignore and action.senderID < 50:
+                alappend(action)
         
+        self.finished()
+
+        return action_list
+            
+    def finished(self):
+        # Merge players and player_bin
+        [self.players.append(np) for np in self.player_bin]
+
+        # Remove all 0s from pings
+        for p in self.players:
+            while p.pings.count(0) > 0:
+                p.pings.remove(0)
+ 
     def dump_next(self):
-        current_time = format_time(self.replaytime)
         self.cur_senderID = self.parse_uint()
         action = self.actions[self.parse_byte()]
         parsed = getattr(self, action)()
         
-        return Action(time=current_time, senderID=self.cur_senderID, action=action, parsed=parsed)
+        return Action(time=self.replaytime, senderID=self.cur_senderID, action=action, parsed=parsed)
         
     def announceHandicap(self):
         return 'Handicap set to '+ str(self.parse_ushort())
@@ -76,8 +101,8 @@ class ActionParser(Parser):
     def broadcastPing(self):
         num = self.parse_byte()
         
-        for _ in range(num):
-            self.parse_byte()
+        # Ugly but faster
+        [self.players[p].pings.append(self.parse_byte()*4) for p in range(num)]
             
         return 'Pings updated'
         
@@ -88,10 +113,13 @@ class ActionParser(Parser):
         return 'Settings changed'
         
     def changePlayerAdminRights(self):
-        player = self.player(self.parse_uint(), obj=True)
+        player = self.player(self.parse_uint())
         admin = self.parse_bool()
         player.admin = admin
         
+        if not player:
+            return None
+
         if not admin:
             return 'Removed admin from '+ player.name
         
@@ -99,7 +127,9 @@ class ActionParser(Parser):
         
     def changePlayerAvatar(self):
         ava = self.parse_str()
-        player = self.player(self.cur_senderID, obj=True)
+        player = self.player(self.cur_senderID)
+        if not player:
+            return None
         player.avatar = ava
         return 'Avatar changed to: '+ ava
         
@@ -115,22 +145,21 @@ class ActionParser(Parser):
         return '{} teams'.format('Unlocked' if not self.parse_bool() else 'Locked')
         
     def changeTeam(self):
-        player = self.player(self.parse_uint(), obj=True)
+        player = self.player(self.parse_uint())
         team = self.parse_side()
         
-        if player == None:
+        if not player:
             return None
             
         if team == player.team: # player was not moved, glitch.
             return None
         
-        player.team = team
+        self.move_player(player, team)
         
         return 'Moved '+ player.name +' to '+ team
         
     def discMove(self):
-        move = self.parse_byte()
-        return move
+        return self.parse_byte()
         
     def stopMatch(self):
         return 'Stopped match'
@@ -178,10 +207,10 @@ class ActionParser(Parser):
         self.del_player(ID)
             
         if kicked:
-            return '{} was {}: {}'.format(player, 'banned' if ban else 'kicked', reason)
+            return '{} was {}: {}'.format(player.name, 'banned' if ban else 'kicked', reason)
         
         else:
-            return '{} left'.format(player)
+            return '{} left'.format(player.name)
      
      
     def announceDesync(self):

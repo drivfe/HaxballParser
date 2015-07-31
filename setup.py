@@ -1,6 +1,6 @@
 import sys
 
-if 'install' or 'develop' in sys.argv[1]:
+if not 'build' in sys.argv[1]:
     from setuptools import setup
     cx = {}
 else:
@@ -29,5 +29,5 @@ setup(
             'HBRDumper = HBRDumper.__main__:main',
         ]
     },
-    *cx
+    **cx
 )

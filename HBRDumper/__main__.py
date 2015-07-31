@@ -3,6 +3,7 @@ import os
 import glob
 from timeit import default_timer as t
 from .dumper import dump
+from .utils import *
 
 def main(args=None):
     args = ' '.join(sys.argv[1:])
@@ -28,6 +29,7 @@ def main(args=None):
         os.makedirs(dirn)
             
     print('Dumped file(s) will be saved in the directory "{}"'.format(dirn))
+    suc, fail = 0, 0
     for file in files:
         basen, ext = os.path.basename(file).split('.')
         hbrdump = os.path.join(dirn, basen+'.txt')
@@ -36,10 +38,14 @@ def main(args=None):
             dumped = dump(file)
         except ParserError as e:
             print('"{}" -> ERROR: {}'.format(basen, e.reason))
+            fail+=1
         else:
-            print('"{}" -> SUCCESS: dumped to {} ({}ms)'.format(basen, hbrdump, int((t()-start)*1000)))
+            print('"{}" -> SUCCESS: dumped to hbrdumps/{}.txt ({}ms)'.format(basen, basen, int((t()-start)*1000)))
             with open(hbrdump, 'w+') as f:
                 f.write(dumped.prettify())
+            suc+=1
+
+    print("\nSUCCESSFUL DUMPS: {}\nFAILED DUMPS: {}".format(suc, fail))
 
 if __name__ == '__main__':
     main()
