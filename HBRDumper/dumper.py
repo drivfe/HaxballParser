@@ -107,6 +107,7 @@ class Dumper:
         self.dump_header()
         self.dump_discs()
         self.dump_players()
+        self.dump_colors()
         self.dump_actions()
         
         return DumpResponse(self.result)
@@ -202,6 +203,14 @@ class Dumper:
         
         self.result['Players'] = pls
     
+    def dump_colors(self):
+        for _ in range(2): # Two teams
+            self.hbr.parse_ushort() # Angle
+            self.hbr.parse_uint() # Textcolor
+            clrs = self.hbr.parse_byte() # Amount of colors
+            for _ in range(clrs):
+                self.hbr.parse_uint()
+
     def dump_actions(self):
         rem_data = self.hbr.fh.read()
         self.hbr = ActionParser(rem_data, self.result['Players'])

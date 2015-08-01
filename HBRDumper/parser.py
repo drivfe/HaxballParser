@@ -95,5 +95,3 @@ class Parser:
         self.fh = io.BytesIO()
         self.fh.write(decompressed)
         self.fh.seek(0)
-        
-        return 'Rest of file has been deflated'

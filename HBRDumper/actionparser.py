@@ -26,7 +26,8 @@ class ActionParser(Parser):
 			'changeStadium',
 			'pauseGame',
 			'broadcastPing',
-			'announceHandicap'
+			'announceHandicap',
+            'changeTeamColors'
         ]
 
     def move_player(self, p, team):
@@ -56,8 +57,6 @@ class ActionParser(Parser):
         action_list = []
         action_ignore = ['discMove', 'broadcastPing']
         
-        self.nxt(14) # I don't know what the first 14 bytes are.
-
         # Stuff to make parsing faster
         dnext = self.dump_next
         pos = self.pos
@@ -95,6 +94,16 @@ class ActionParser(Parser):
         
         return Action(time=self.replaytime, senderID=self.cur_senderID, action=action, parsed=parsed)
         
+    def changeTeamColors(self):
+        side = self.parse_side()
+        coloramt = self.parse_byte()
+        for _ in range(min(coloramt, 3)):
+            self.parse_uint()
+        self.parse_ushort() # Angle
+        self.parse_uint() # Textcolor
+
+        return 'Colors changed for the {} team.'.format(side)
+
     def announceHandicap(self):
         return 'Handicap set to '+ str(self.parse_ushort())
         
@@ -137,9 +146,17 @@ class ActionParser(Parser):
         return 'Game ' + 'paused' if self.parse_bool() else 'unpaused'
         
     def changeStadium(self):
-        len = self.parse_uint()
-        
-        return 'Map changed to ' + self.parse_stadium()
+        l = self.parse_uint()
+        stp = Parser(self.nxt(l))
+        stp.parse_byte() # Don't know
+
+        sname = stp.parse_stadium()
+
+        if l != 3:
+            sname = 'Custom'
+
+        del stp
+        return 'Map changed to ' + sname
         
     def changeTeamsLock(self):
         return '{} teams'.format('Unlocked' if not self.parse_bool() else 'Locked')
