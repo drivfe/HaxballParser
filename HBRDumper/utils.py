@@ -23,13 +23,16 @@ class Player:
         self.pings = []
         
     def average_ping(self):
+        # Remove all 0s from pings
+        [p for p in self.pings if p > 0]
+
         if len(self.pings) > 0:
-            return "{:.02f}".format(sum(self.pings) / len(self.pings))
+            return int(sum(self.pings) / len(self.pings))
         else:
             return 0
         
     def __repr__(self):
-        return 'Player(ID={s.ID}, name={s.name}, country={s.country}, team={s.team}, admin={s.admin}, avatar={s.avatar}, ping={ap})'.format(s=self, ap=self.average_ping())
+        return 'Player(ID={s.ID}, name={s.name}, country={s.country}, team={s.team}, admin={s.admin}, avatar={s.avatar}, ping={ap})'.format(s=self, ap=str(self.average_ping()))
         
 def find_by_attr_val(lst, attrs, multiple=False):
     res = []

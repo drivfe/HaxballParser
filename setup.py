@@ -20,7 +20,7 @@ setup(
     version = "0.1",
     author = "drivfe",
     description = (
-        "Dump Haxball replay file data"
+        "Parses Haxball replay files"
     ),
     keywords = "haxball",
     packages = ['HBRDumper'],

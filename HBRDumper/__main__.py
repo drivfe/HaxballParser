@@ -29,7 +29,7 @@ def main(args=None):
         os.makedirs(dirn)
             
     print('Dumped file(s) will be saved in the directory "{}"'.format(dirn))
-    suc, fail = 0, 0
+    suc, fail, tottime = 0, 0, t()
     for file in files:
         basen, ext = os.path.basename(file).split('.')
         hbrdump = os.path.join(dirn, basen+'.txt')
@@ -44,8 +44,9 @@ def main(args=None):
             with open(hbrdump, 'w+') as f:
                 f.write(dumped.prettify())
             suc+=1
+    tottime = int((t()-tottime)*1000)
 
-    print("\nSUCCESSFUL DUMPS: {}\nFAILED DUMPS: {}".format(suc, fail))
+    print("\nSUCCESSFUL DUMPS: {}\nFAILED DUMPS: {}\n{}ms ({}ms/hbr)".format(suc, fail, tottime, int(tottime/suc)))
 
 if __name__ == '__main__':
     main()

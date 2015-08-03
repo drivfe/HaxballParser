@@ -1,5 +1,5 @@
 # HBRDumper
-Parses Haxball replays and output in human readable format.
+Parses Haxball replays and outputs them in a human readable format.
 
 Python port of https://github.com/jonnyynnoj/haxball-replay-parser
 

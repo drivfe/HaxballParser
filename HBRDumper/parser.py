@@ -2,7 +2,6 @@ import socket
 import struct
 import zlib
 import io
-import string
 from .utils import ParserError
 
 class Parser:
@@ -26,26 +25,16 @@ class Parser:
         return socket.ntohs(unpacked)
         
     def parse_str(self):
-        strlen = self.parse_ushort()
-        result = b""
-        
-        for c in range(strlen):
-            try:
-                result += bytes([self.parse_byte()])
-            except:
-                pass
+        length = self.parse_ushort()
+        result = struct.unpack('<{}s'.format(length), self.nxt(length))[0]
 
-        fs = result.decode('ascii', errors='ignore')
-        return ''.join(filter(lambda x: x in string.printable, fs))
+        return result.decode('ascii', errors='ignore')
 
     def parse_byte(self):
         bts = self.nxt(1)
         return struct.unpack("<B", bts)[0]
 
     def parse_bool(self):
-        # n = ord(self.nxt(1))
-        # if n > 2 or n < 0:
-        #     print('BOOL ERROR', n)
         return ord(self.nxt(1)) == 1 # 0 = false, 1 = true
 
     def parse_side(self):

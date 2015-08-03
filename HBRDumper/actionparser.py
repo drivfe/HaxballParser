@@ -11,22 +11,22 @@ class ActionParser(Parser):
         self.cur_senderID = 0
         self.actions = [
             'newPlayer',
-			'removePlayer',
-			'playerChat',
-			'logicUpdate',
-			'startMatch',
-			'stopMatch',
-			'discMove',
-			'changeTeam',
-			'changeTeamsLock',
-			'changeGameSettings',
-			'changePlayerAvatar',
-			'announceDesync',
-			'changePlayerAdminRights',
-			'changeStadium',
-			'pauseGame',
-			'broadcastPing',
-			'announceHandicap',
+            'removePlayer',
+            'playerChat',
+            'logicUpdate',
+            'startMatch',
+            'stopMatch',
+            'discMove',
+            'changeTeam',
+            'changeTeamsLock',
+            'changeGameSettings',
+            'changePlayerAvatar',
+            'announceDesync',
+            'changePlayerAdminRights',
+            'changeStadium',
+            'pauseGame',
+            'broadcastPing',
+            'announceHandicap',
             'changeTeamColors'
         ]
 
@@ -49,8 +49,7 @@ class ActionParser(Parser):
             pass
         
     def player(self, id):
-        sender = find_by_attr_val(self.players, {'ID': id})
-        return sender
+        return find_by_attr_val(self.players, {'ID': id})
 
     def dump(self):
         cframe = 0
@@ -71,7 +70,7 @@ class ActionParser(Parser):
             
             action = dnext()
 
-            if action.parsed != None and action.action not in action_ignore and action.senderID < 50:
+            if action.parsed != None and action.action not in action_ignore and action.senderID < 1000:
                 alappend(action)
         
         self.finished()
@@ -81,11 +80,6 @@ class ActionParser(Parser):
     def finished(self):
         # Merge players and player_bin
         [self.players.append(np) for np in self.player_bin]
-
-        # Remove all 0s from pings
-        for p in self.players:
-            while p.pings.count(0) > 0:
-                p.pings.remove(0)
  
     def dump_next(self):
         self.cur_senderID = self.parse_uint()
