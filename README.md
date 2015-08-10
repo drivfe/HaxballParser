@@ -1,4 +1,4 @@
-# HBRDumper
+# HaxballParser
 Parses Haxball replays and outputs them in a human readable format.
 
 Python port of https://github.com/jonnyynnoj/haxball-replay-parser
@@ -10,13 +10,13 @@ Python port of https://github.com/jonnyynnoj/haxball-replay-parser
 ---
 ### Usage
 	Make sure Scripts/ is in PATH
-	hbrdumper # Will parse hbr files in current directory
-	hbrdumper C:/Path/to/folder/with/hbr/files/
-	hbrdumper C:/Path/to/hbr/file/
+	haxballparser # Will parse hbr files in current directory
+	haxballparser C:/Path/to/folder/with/hbr/files/
+	haxballparser C:/Path/to/hbr/file/
 ---
 ### Embedding
 ```python
-from HBRDumper import dump
+from HaxballParser import dump
 file = "C:/Path/to/file"
 dumpresp = dump(file)
 dumpraw = dumpresp.result

@@ -12,21 +12,21 @@ else:
                 'compressed' : True
             }
         },
-        executables=[Executable('HBRDumper/__main__.py')]
+        executables=[Executable('HaxballParser/__main__.py')]
     )
 
 setup(
-    name = "HBRDumper",
+    name = "HaxballParser",
     version = "0.1",
     author = "drivfe",
     description = (
         "Parses Haxball replay files"
     ),
-    keywords = "haxball",
-    packages = ['HBRDumper'],
+    keywords = "hax haxball parse parser dump dumper",
+    packages = ['HaxballParser'],
     entry_points={
         'console_scripts': [
-            'HBRDumper = HBRDumper.__main__:main',
+            'haxballparser = HaxballParser.__main__:main',
         ]
     },
     **cx
