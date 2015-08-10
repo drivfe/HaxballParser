@@ -24,10 +24,10 @@ class Player:
         
     def average_ping(self):
         # Remove all 0s from pings
-        [p for p in self.pings if p > 0]
+        p = [p for p in self.pings if p > 0]
 
-        if len(self.pings) > 0:
-            return int(sum(self.pings) / len(self.pings))
+        if len(p) > 0:
+            return int(sum(p) / len(p))
         else:
             return 0
         
