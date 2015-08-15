@@ -88,9 +88,10 @@ class DumpResponse:
         return pretty
 
 class Dumper:
-    def __init__(self, file):
+    def __init__(self, file, options):
         self.hbr = Parser(file)
         self.result = OrderedDict()
+        self.options = options
         
     def dump(self):
         version = self.hbr.parse_uint()
@@ -128,7 +129,7 @@ class Dumper:
             ('Red score', self.hbr.parse_uint),
             ('Blue score', self.hbr.parse_uint),
             ('Current match time', self.hbr.parse_double),
-            ('Paused', self.hbr.parse_bool),
+            ('PauseTimer', self.hbr.parse_byte),
             ('Stadium', self.hbr.parse_stadium),
             ('In progress', self.hbr.parse_bool)
         ]
@@ -138,6 +139,9 @@ class Dumper:
             if 'i_' not in name:
                 self.result[name] = parsed
         
+        self.result['Paused'] = self.result['PauseTimer'] == 120
+        del self.result['PauseTimer']
+
         self.result['Replay length'] = format_time(self.result['Replay length'] / 60)
 
         if str(self.result['Current match time']).lower() == 'nan':
@@ -213,13 +217,13 @@ class Dumper:
 
     def dump_actions(self):
         rem_data = self.hbr.fh.read()
-        self.hbr = ActionParser(rem_data, self.result['Players'])
+        self.hbr = ActionParser(rem_data, self.result, self.options)
       
         self.result['Actions'] = self.hbr.dump()
         
-def dump(file):
+def dump(file, options={}):
     with open(file, 'rb') as fh:
         data = fh.read()
         
-    resp = Dumper(data)
+    resp = Dumper(data, options)
     return resp.dump()

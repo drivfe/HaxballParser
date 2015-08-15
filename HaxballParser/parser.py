@@ -35,7 +35,7 @@ class Parser:
         return struct.unpack("<B", bts)[0]
 
     def parse_bool(self):
-        return ord(self.nxt(1)) == 1 # 0 = false, 1 = true
+        return self.nxt(1) == b'\x01' # ord(self.nxt(1)) == 1
 
     def parse_side(self):
         side = self.parse_byte()

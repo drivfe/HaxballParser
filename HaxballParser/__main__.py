@@ -46,7 +46,7 @@ def main(args=None):
             suc+=1
     tottime = int((t()-tottime)*1000)
 
-    print("\nSUCCESSFUL DUMPS: {}\nFAILED DUMPS: {}\n{}ms ({}ms/hbr)".format(suc, fail, tottime, int(tottime/suc)))
+    print("\nSUCCESSFUL DUMPS: {}\nFAILED DUMPS: {}\n{}ms ({}ms/hbr)".format(suc, fail, tottime, int(tottime/suc) if suc > 0 else 0))
 
 if __name__ == '__main__':
     main()

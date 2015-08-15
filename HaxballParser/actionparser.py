@@ -2,9 +2,12 @@ from .parser import Parser
 from .utils import *
 
 class ActionParser(Parser):
-    def __init__(self, btsio, players):
+    def __init__(self, btsio, result, options):
         super().__init__(btsio)
-        self.players = players
+        self.result = result
+        self.players = result['Players']
+        self.in_progress = result['In progress'] and not result['Paused']
+        self.only_in_progress = options.get('only_in_progress', False)
         self.player_bin = []
         self.rem_data_size = len(btsio)
         self.replaytime = 0
@@ -70,7 +73,7 @@ class ActionParser(Parser):
             
             action = dnext()
 
-            if action.parsed != None and action.action not in action_ignore and action.senderID < 1000:
+            if action.parsed and action.action not in action_ignore and action.senderID < 1000:
                 alappend(action)
         
         self.finished()
@@ -105,7 +108,9 @@ class ActionParser(Parser):
         num = self.parse_byte()
         
         # Ugly but faster
-        [self.players[p].pings.append(self.parse_byte()*4) for p in range(num)]
+        pings = [self.parse_byte()*4 for p in range(num)]
+        if not self.only_in_progress or (self.in_progress and self.only_in_progress):
+            [self.players[p].pings.append(pings[p]) for p in range(num)]
             
         return 'Pings updated'
         
@@ -137,7 +142,10 @@ class ActionParser(Parser):
         return 'Avatar changed to: '+ ava
         
     def pauseGame(self):
-        return 'Game ' + 'paused' if self.parse_bool() else 'unpaused'
+        paused = self.parse_bool() # True = paused
+        self.in_progress = not paused
+
+        return 'Game paused' if paused else 'Game unpaused'
         
     def changeStadium(self):
         l = self.parse_uint()
@@ -173,9 +181,11 @@ class ActionParser(Parser):
         return self.parse_byte()
         
     def stopMatch(self):
+        self.in_progress = False
         return 'Stopped match'
         
     def startMatch(self):
+        self.in_progress = True
         return 'Started match'
     
     def logicUpdate(self):
