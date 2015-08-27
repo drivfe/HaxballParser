@@ -2,8 +2,9 @@ import sys
 import os
 import glob
 from timeit import default_timer as t
-from .dumper import dump
-from .utils import *
+
+from HaxballParser.dumper import dump
+from HaxballParser.utils import *
 
 def main(args=None):
     args = ' '.join(sys.argv[1:])
