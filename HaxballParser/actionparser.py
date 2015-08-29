@@ -5,13 +5,13 @@ class ActionParser(Parser):
     def __init__(self, btsio, result, options):
         super().__init__(btsio)
         self.result = result
-        self.players = result['Players']
-        self.in_progress = result['In progress'] and not result['Paused']
-        self.only_in_progress = options.get('only_in_progress', False)
-        self.player_bin = []
         self.rem_data_size = len(btsio)
-        self.replaytime = 0
-        self.cur_senderID = 0
+
+        self.ph = PlayerHandler(self)
+
+        self.pings_only_in_progress = options.get('pings_only_in_progress', False)
+        self.action_ignore = set(options.get('actions_to_ignore', ['broadcastPing', 'discMove']))
+
         self.actions = [
             'newPlayer',
             'removePlayer',
@@ -33,47 +33,44 @@ class ActionParser(Parser):
             'changeTeamColors'
         ]
 
-    def move_player(self, p, team):
-        p.team = team
+    @property
+    def in_progress(self):
+        return self._in_progress
 
-        # Move player to the back of the list
-        idx = self.players.index(p)
-        self.players.pop(idx)
-        self.players.append(p)
+    @in_progress.setter
+    def in_progress(self, val): # Start/Stop counting playing-time when game is started/stopped.
+        self._in_progress = val
+        if val:
+            self.ph.start_pt()
+        else:
+            self.ph.stop_pt()
 
-    def del_player(self, id):
-        try:
-            p = find_by_attr_val(self.players, {'ID': id})
-            if p:
-                p.removed = True
-                self.player_bin.append(p)
-                del self.players[self.players.index(p)]
-        except KeyError:
-            pass
-        
-    def player(self, id):
-        return find_by_attr_val(self.players, {'ID': id})
+    def player(self, pid):
+        return self.ph.get_from_id(pid)
 
     def dump(self):
-        cframe = 0
+        self.cframe = 0
+        self.replaytime = 0
+        self.cur_senderID = 0
+        self.in_progress = self.result['In progress'] and not self.result['Paused']
+
         action_list = []
-        action_ignore = ['discMove', 'broadcastPing']
-        
+
         # Stuff to make parsing faster
         dnext = self.dump_next
-        pos = self.pos
+        pos = self.fh.tell
         alappend = action_list.append
         pb = self.parse_bool
         pu = self.parse_uint
 
         while pos() < self.rem_data_size:
             if pb(): # True if this is a different frame.
-                cframe += pu()
-                self.replaytime = cframe / 60
+                self.cframe += pu()
+                self.replaytime = self.cframe / 60
             
             action = dnext()
-
-            if action.parsed and action.action not in action_ignore and action.senderID < 1000:
+        
+            if action.parsed and action.action not in self.action_ignore:
                 alappend(action)
         
         self.finished()
@@ -81,8 +78,11 @@ class ActionParser(Parser):
         return action_list
             
     def finished(self):
+        # Make sure Player's frames_in are updated
+        self.in_progress = False
+
         # Merge players and player_bin
-        [self.players.append(np) for np in self.player_bin]
+        [self.ph.players.append(np) for np in self.ph.player_bin]
  
     def dump_next(self):
         self.cur_senderID = self.parse_uint()
@@ -109,14 +109,14 @@ class ActionParser(Parser):
         
         # Ugly but faster
         pings = [self.parse_byte()*4 for p in range(num)]
-        if not self.only_in_progress or (self.in_progress and self.only_in_progress):
-            [self.players[p].pings.append(pings[p]) for p in range(num)]
+        if not self.pings_only_in_progress or (self.in_progress and self.pings_only_in_progress):
+            self.ph.update_pings(pings)
             
         return 'Pings updated'
         
     def changeGameSettings(self):
-        setting = self.parse_byte()
-        val = self.parse_uint()
+        self.parse_byte() # setting
+        self.parse_uint() # val
         
         return 'Settings changed'
         
@@ -173,12 +173,12 @@ class ActionParser(Parser):
         if team == player.team: # player was not moved, glitch.
             return None
         
-        self.move_player(player, team)
+        self.ph.move_player(player, team)
         
         return 'Moved '+ player.name +' to '+ team
         
     def discMove(self):
-        return self.parse_byte()
+        return self.fh.read(1) # No need to unpack, for now.
         
     def stopMatch(self):
         self.in_progress = False
@@ -192,7 +192,7 @@ class ActionParser(Parser):
         return 'Logic update'
     
     def playerChat(self):
-        return 'Said: '+ self.parse_str()
+        return Message(self.cur_senderID, self.in_progress, self.parse_str())
         
     def newPlayer(self):
         ID = self.parse_uint()
@@ -208,7 +208,8 @@ class ActionParser(Parser):
                 avatar='',
                 orig=False
             )
-        self.players.append(p)
+
+        self.ph.add_player(p)
         
         return name+' joined'
         
@@ -225,14 +226,13 @@ class ActionParser(Parser):
         if not player:
             return None
             
-        self.del_player(ID)
+        self.ph.remove_player(ID)
             
         if kicked:
             return '{} was {}: {}'.format(player.name, 'banned' if ban else 'kicked', reason)
         
         else:
             return '{} left'.format(player.name)
-     
      
     def announceDesync(self):
         return 'Desynchronized'

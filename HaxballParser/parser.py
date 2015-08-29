@@ -7,12 +7,7 @@ from .utils import ParserError
 class Parser:
     def __init__(self, btsio):
         self.fh = io.BytesIO(btsio)
-    
-    def pos(self):
-        return self.fh.tell()
-    
-    def nxt(self, amount):
-        return self.fh.read(amount)
+        self.nxt = self.fh.read
 
     def parse_uint(self):
         bts = self.nxt(4)
@@ -31,8 +26,7 @@ class Parser:
         return result.decode('ascii', errors='ignore')
 
     def parse_byte(self):
-        bts = self.nxt(1)
-        return struct.unpack("<B", bts)[0]
+        return ord(self.nxt(1))
 
     def parse_bool(self):
         return self.nxt(1) == b'\x01' # ord(self.nxt(1)) == 1
@@ -46,7 +40,8 @@ class Parser:
         elif side == 0:
             return 'Spectator'
         else:
-            return 'parse_side() error'
+            raise ParserError('parse_side() error.')
+
 
     def parse_double(self):
         bts = self.nxt(8)[::-1]
@@ -78,9 +73,9 @@ class Parser:
         return maps[b]
 
     def deflate(self):
-        decompressed = zlib.decompress(self.fh.read())
-        self.fh.close()
+        decompressed = zlib.decompress(self.nxt())
 
-        self.fh = io.BytesIO()
+        self.fh.truncate(0)
+        self.fh.seek(0)
         self.fh.write(decompressed)
         self.fh.seek(0)
