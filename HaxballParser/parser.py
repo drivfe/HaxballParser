@@ -66,14 +66,105 @@ class Parser:
         ]
         
         b = self.parse_byte()
+
         if b == 255:
-            raise ParserError('Custom stadiums are not supported.')
-        if b >= len(maps): # Bug?
-            return 'BUG'
+            return "[CUSTOM] {}".format(self.parse_custom_stadium())
+
         return maps[b]
 
-    def deflate(self):
-        decompressed = zlib.decompress(self.nxt())
+    def parse_custom_stadium(self):
+        stadium_name = self.parse_str()
+
+        # Background
+        self.parse_byte() # bg type
+        self.parse_double() # bg width
+        self.parse_double() # bg height
+        self.parse_double() # bg kickoff radius
+        self.parse_double() # bg corner radius
+        self.parse_double() # bg goal line
+        self.parse_uint() # bg color
+
+        # Camera
+        self.parse_double() # camera width
+        self.parse_double() # camera height
+
+        # Spawn
+        self.parse_double() # spawn distance
+
+        # Vertices
+        for _ in range(self.parse_byte()):
+            self.parse_pos() # position
+            self.parse_double() # bCoef
+            self.parse_uint() # cMask
+            self.parse_uint() # cGroup
+
+        # Segments
+        for _ in range(self.parse_byte()):
+            self.parse_byte() # v0
+            self.parse_byte() # v1
+            self.parse_double() # bCoef
+            self.parse_uint() # cMask
+            self.parse_uint() # cGroup
+            self.parse_double() # curve
+            self.parse_bool() # visible
+            self.parse_uint() # color
+
+        # Planes
+        for _ in range(self.parse_byte()):
+            self.parse_pos() # position
+            self.parse_double() # distance
+            self.parse_double() # bCoef
+            self.parse_uint() # cMask
+            self.parse_uint() # cGroup
+
+        # Goals
+        for _ in range(self.parse_byte()):
+            self.parse_pos() # position 0
+            self.parse_pos() # position 1
+            self.parse_side() # team
+
+        # Discs
+        for _ in range(self.parse_byte()):
+            self.parse_pos() # position
+            self.parse_double() # speedx
+            self.parse_double() # speedy
+            self.parse_double() # radius
+            self.parse_double() # bCoef
+            self.parse_double() # invMass
+            self.parse_double() # damping
+            self.parse_uint() # color
+            self.parse_uint() # cMask
+            self.parse_uint() # cGroup
+
+        # Player physics
+        self.parse_double() # bCoef
+        self.parse_double() # invMass
+        self.parse_double() # damping
+        self.parse_double() # acceleration
+        self.parse_double() # kickingAcceleration
+        self.parse_double() # kickingDamping
+        self.parse_double() # kickingStrength
+
+        # Ball physics
+        self.parse_pos() # Not important
+        self.parse_pos() # Not important
+        self.parse_double() # radius
+        self.parse_double() # bCoef
+        self.parse_double() # invMass
+        self.parse_double() # damping
+        self.parse_uint() # color 
+        self.parse_uint() # cMask
+        self.parse_uint() # cGroup
+
+        return stadium_name
+
+    def deflate(self, inflate=False):
+        data = self.nxt()
+        if inflate:
+            decompressed = zlib.decompress(data, -15)
+
+        else:
+            decompressed = zlib.decompress(data)
 
         self.fh.truncate(0)
         self.fh.seek(0)

@@ -149,12 +149,9 @@ class ActionParser(Parser):
     def changeStadium(self):
         l = self.parse_uint()
         stp = Parser(self.nxt(l))
-        stp.parse_byte() # Don't know
+        stp.deflate(True)
 
         sname = stp.parse_stadium()
-
-        if l != 3:
-            sname = 'Custom'
 
         del stp
         return 'Map changed to ' + sname
