@@ -1,13 +1,14 @@
 import time
 
 class Message:
-    def  __init__(self, name, inprog, msg):
-        self.name = name
-        self.in_progress = inprog
+    def  __init__(self, player, in_prog, msg):
+        self.team = player.team
+        self.name = player.name
+        self.in_progress = in_prog
         self.msg = msg
 
     def __repr__(self):
-        return 'Message(name={s.name}, in_progress={s.in_progress}, msg={s.msg})'.format(s=self)
+        return 'Message(name={s.name}, team={s.team}, in_progress={s.in_progress}, msg={s.msg})'.format(s=self)
 
     def __str__(self):
         return 'Said: ' + self.msg
@@ -29,7 +30,20 @@ class PlayerHandler:
         self.player_bin = []
 
     def update_pings(self, pings):
-        [self.players[p].pings.append(pings[p]) for p in range(len(pings))]
+        if len(self.players) != len(pings):
+            raise ParserError('Pings length and players length do not match!')
+
+        whileplaying = self.ap.pings_only_while_playing
+
+        if not self.ap.in_progress and whileplaying:
+            return
+
+        if not self.ap.in_progress and self.ap.pings_only_in_progress:
+            return
+
+        for n, p in enumerate(self.players):
+            if (not whileplaying) or (whileplaying and p.team != 'Spectator' and self.ap.in_progress):
+                p.pings.append(pings[n])
 
     def start_pt(self):
         [p.start_pt(self.ap.cframe) for p in self.players]

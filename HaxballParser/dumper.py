@@ -144,7 +144,7 @@ class Dumper:
 
         self.result['Replay length'] = format_time(self.result['Replay length'] / 60)
 
-        if str(self.result['Current match time']).lower() == 'nan':
+        if str(self.result['Current match time']).lower() == 'nan' or self.result['Current match time'] < 0:
             self.result['Current match time'] = 0
         self.result['Current match time'] = format_time(self.result['Current match time'])
 

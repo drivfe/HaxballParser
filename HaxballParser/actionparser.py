@@ -10,6 +10,7 @@ class ActionParser(Parser):
         self.ph = PlayerHandler(self)
 
         self.pings_only_in_progress = options.get('pings_only_in_progress', False)
+        self.pings_only_while_playing = options.get('pings_only_while_playing', False)
         self.action_ignore = set(options.get('actions_to_ignore', ['broadcastPing', 'discMove']))
 
         self.actions = [
@@ -108,9 +109,7 @@ class ActionParser(Parser):
         num = self.parse_byte()
         
         # Ugly but faster
-        pings = [self.parse_byte()*4 for p in range(num)]
-        if not self.pings_only_in_progress or (self.in_progress and self.pings_only_in_progress):
-            self.ph.update_pings(pings)
+        self.ph.update_pings([self.parse_byte()*4 for p in range(num)])
             
         return 'Pings updated'
         
@@ -192,7 +191,7 @@ class ActionParser(Parser):
         return 'Logic update'
     
     def playerChat(self):
-        return Message(self.cur_senderID, self.in_progress, self.parse_str())
+        return Message(self.ph.get_from_id(self.cur_senderID), self.in_progress, self.parse_str())
         
     def newPlayer(self):
         ID = self.parse_uint()
