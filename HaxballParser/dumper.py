@@ -102,8 +102,7 @@ class Dumper:
         
         self.result['Version'] = version
         
-        if self.hbr.nxt(4) != b'HBRP':
-            raise ParserError('Not a valid .hbr file.')
+        self.hbr.nxt(4) # HBRP
         
         self.dump_header()
         self.dump_discs()
